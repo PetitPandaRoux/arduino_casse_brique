@@ -56,6 +56,7 @@ int vitesseY = 1;
 //initialisation des boutons de déplacement
 const int buttonPlus = 2;
 const int buttonMoins = 3;
+
 int etatButtonPlus = 0;
 int etatButtonPlusPrec = 0;
 int etatButtonMoins = 0;
@@ -138,16 +139,16 @@ void loop() {
 void setMatriceCouleur(uint8_t matrice[], int longueurTableau) {
 
   for (byte i = 0 ; i < longueurTableau ; i++) {
-    if (matrice[i] == 1 ) {
-      pixels.setPixelColor(i, pixels.Color(0, 255, 0));
-    } else if (matrice[i] == 2) { // Le joueur
-      pixels.setPixelColor(i, pixels.Color(255, 255, 0));
-    } else if (matrice[i] == 3) { //La balle
-      pixels.setPixelColor(i, pixels.Color(255, 0, 0));
+    if (matrice[i] == 1 ) { 
+      pixels.setPixelColor(i, pixels.Color(0, 255, 0)); // Les murs rouges
+    } else if (matrice[i] == 2) { 
+      pixels.setPixelColor(i, pixels.Color(255, 255, 0)); // Le joueur 
+    } else if (matrice[i] == 3) { 
+      pixels.setPixelColor(i, pixels.Color(255, 0, 0)); //La balle
     } else if (matrice[i] == 4) {
-      pixels.setPixelColor(i, pixels.Color(0, 0, 255));
+      pixels.setPixelColor(i, pixels.Color(0, 0, 255)); // Les briques
     } else {
-      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+      pixels.setPixelColor(i, pixels.Color(0, 0, 0)); // Rien
     }
   }
   pixels.show();                          //  Update strip to match
@@ -179,6 +180,8 @@ int b,c = 0 ;
 for (b = 0 ; b < 3 ; b ++){
   if (balleX == briques[b][0] && balleY == briques[b][1]){
       tableau[briques[b][0]][briques[b][1]] = 0 ;
+      briques[b][0] = -1;
+      briques[b][1] = -1;
       vitesseY = -vitesseY;          
       vitesseX = -vitesseX ;
   } 
