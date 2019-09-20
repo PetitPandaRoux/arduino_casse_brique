@@ -106,20 +106,21 @@ void loop() {
 
 // Tranformation du tableau 
   int i, j, k = 0;
-  
+
   for(j = 0 ; j < 5 ; j++){
-    if ( i % 2 != 0) {
-      for ( i = 4 ; i >= 0 ; i++) {
-        tableau_ld[k] = tableau[i][j];
-        k++ 
+    if ( j % 2 != 0) {
+      for ( i = 4 ; i >= 0 ; i--) {
+        tableau_1d[k] = tableau[i][j];
+        k++ ;
       }
     } else {
       for( i = 0 ; i < 5 ; i++){
-        tableau_ld[k] = tableau[i][j];
-        k++  
+        tableau_1d[k] = tableau[i][j];
+        k++ ;  
       }
     }
   }
+ 
   
   size_t array_length = sizeof(tableau_1d) / sizeof(tableau_1d[0]);
   
@@ -143,6 +144,8 @@ void setMatriceCouleur(uint8_t matrice[], int longueurTableau) {
       pixels.setPixelColor(i, pixels.Color(255, 255, 0));
     } else if (matrice[i] == 3) { //La balle
       pixels.setPixelColor(i, pixels.Color(255, 0, 0));
+    } else if (matrice[i] == 4) {
+      pixels.setPixelColor(i, pixels.Color(0, 0, 255));
     } else {
       pixels.setPixelColor(i, pixels.Color(0, 0, 0));
     }
