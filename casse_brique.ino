@@ -11,6 +11,8 @@
 
 #define BRIGHTNESS 255
 
+
+
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_RGBW + NEO_KHZ800);
 // Argument 1 = Number of pixels in NeoPixel strip
 // Argument 2 = Arduino pin number (most are valid)
@@ -24,14 +26,18 @@ Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_RGBW + NEO_KHZ800);
 //tableau des calculs
 uint8_t tableau[5][5] = {
   {1, 0, 0, 0, 1},
+  {1, 2, 2, 2, 1},
   {1, 0, 0, 0, 1},
-  {1, 0, 0, 0, 1},
-  {1, 0, 0, 0, 1},
+  {1, 0, 3, 0, 1},
   {1, 0, 0, 0, 1}
 };
 
 //tableau final
 uint8_t tableau_1d[25];
+
+uint8_t briques[3][2] = {
+  {1,1}, {1,2}, {1,3}
+};
 
 int led = 13;
 
@@ -40,7 +46,7 @@ int joueurX = 1;
 int joueurY = 1;
 
 //Nous initialisons la position de la balle ici
-uint8_t balleX = 0;
+uint8_t balleX = 3;
 uint8_t balleY = 2;
 
 //Les vitesses initiales de la balle
@@ -114,17 +120,6 @@ void loop() {
       }
     }
   }
-
-
-/*
-  int i, j, k = 0;
-  for (i = 0; i < 5; i++) {
-    for (j = 0; j < 5; j++) {
-      tableau_1d[k] = tableau[i][j];
-      k++;
-    }
-  }
-*/
   
   size_t array_length = sizeof(tableau_1d) / sizeof(tableau_1d[0]);
   
@@ -132,7 +127,7 @@ void loop() {
   
   setMatriceCouleur(tableau_1d, array_length);
   
-  montrerSerial();
+  montrerSerial(); // Permet de vérifier les positions
   
   delay(2000);
 
@@ -157,21 +152,43 @@ void setMatriceCouleur(uint8_t matrice[], int longueurTableau) {
 
 void deplacerBalle() {
 
+  //Efface la lumière du dernier positionnement de la balle
+  tableau[balleX][balleY] = 0 ;
+
   balleX = balleX + vitesseX ;
   balleY = balleY + vitesseY ;
 
+//Si la balle sort horizontalement
   if (balleX >= 4 || balleX <= 0) {
     vitesseX = -vitesseX ;
   } else {
     vitesseX = vitesseX;
   }
 
+//Si la balle sort verticalement
   if (balleY >= 4 || balleY <= 0) {
     vitesseY = -vitesseY;
   } else {
     vitesseY = vitesseY;
   }
+
+int b,c = 0 ;
+for (b = 0 ; b < 3 ; b ++){
+  if (balleX == briques[b][0] && balleY == briques[b][1]){
+      tableau[briques[b][0]][briques[b][1]] = 0 ;
+      vitesseY = -vitesseY;          
+      vitesseX = -vitesseX ;
+  } 
+}
+
+
+  // Place la lumière sur la nouvelle position de la balle 
+  tableau[balleX][balleY] = 3;
   
+}
+
+void updatePosition(){
+
 }
 
 void montrerSerial() {
