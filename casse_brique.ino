@@ -21,39 +21,42 @@ Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_RGBW + NEO_KHZ800);
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
+//tableau des calculs
 uint8_t tableau[5][5] = {
   {1, 0, 0, 0, 1},
-  {2, 0, 0, 0, 2},
   {1, 0, 0, 0, 1},
-  {2, 0, 0, 0, 2},
-  {1, 0, 0, 0, 2}
+  {1, 0, 0, 0, 1},
+  {1, 0, 0, 0, 1},
+  {1, 0, 0, 0, 1}
 };
 
+//tableau final
 uint8_t tableau_1d[25];
 
 int led = 13;
 
-//Nous gérons le positionnemnet du joueur ici
+//Nous initialisons le positionnemnet du joueur ici
 int joueurX = 1;
 int joueurY = 1;
 
-
-//Nous gérons la position de la balle ici
+//Nous initialisons la position de la balle ici
 uint8_t balleX = 0;
 uint8_t balleY = 2;
-
 
 //Les vitesses initiales de la balle
 int vitesseX = 1;
 int vitesseY = 1;
 
-//Gestion des boutons de déplacement
+//initialisation des boutons de déplacement
 const int buttonPlus = 2;
 const int buttonMoins = 3;
 int etatButtonPlus = 0;
 int etatButtonPlusPrec = 0;
 int etatButtonMoins = 0;
-int etatButtonMoinsPrec = 0;  size_t array_length = sizeof(tableau) / sizeof(tableau[0]);
+int etatButtonMoinsPrec = 0;  
+
+//Obtenir la longueur d'un tableau (nombre d'éléments)
+size_t array_length = sizeof(tableau) / sizeof(tableau[0]);
 
 
 void setup() {
@@ -75,25 +78,45 @@ void setup() {
 
 void loop() {
 
+//Lecture des deux boutons de déplacement
   etatButtonPlus = digitalRead(buttonPlus);
   etatButtonMoins = digitalRead(buttonMoins);
 
-
+// Déplacement du joueur
   if (etatButtonPlus == HIGH && etatButtonPlusPrec == LOW) {
-    deplacerLedX("gauche");
+    deplacerJoueur("gauche");
     delay(5);
   } else {
     etatButtonPlusPrec = LOW;
   }
 
   if (etatButtonMoins == HIGH && etatButtonMoinsPrec == LOW) {
-    deplacerLedX("droite");
+    deplacerJoueur("droite");
     delay(5);
   } else {
     etatButtonMoinsPrec = LOW;
   }
 
 
+// Tranformation du tableau 
+  int i, j, k = 0;
+  
+  for(j = 0 ; j < 5 ; j++){
+    if ( i % 2 != 0) {
+      for ( i = 4 ; i >= 0 ; i++) {
+        tableau_ld[k] = tableau[i][j];
+        k++ 
+      }
+    } else {
+      for( i = 0 ; i < 5 ; i++){
+        tableau_ld[k] = tableau[i][j];
+        k++  
+      }
+    }
+  }
+
+
+/*
   int i, j, k = 0;
   for (i = 0; i < 5; i++) {
     for (j = 0; j < 5; j++) {
@@ -101,11 +124,18 @@ void loop() {
       k++;
     }
   }
+*/
+  
   size_t array_length = sizeof(tableau_1d) / sizeof(tableau_1d[0]);
+  
   deplacerBalle();
+  
   setMatriceCouleur(tableau_1d, array_length);
+  
   montrerSerial();
-  delay(200);
+  
+  delay(2000);
+
 }
 
 
@@ -126,7 +156,6 @@ void setMatriceCouleur(uint8_t matrice[], int longueurTableau) {
 }
 
 void deplacerBalle() {
-  tableau[balleX][balleY] = 0;
 
   balleX = balleX + vitesseX ;
   balleY = balleY + vitesseY ;
@@ -142,7 +171,7 @@ void deplacerBalle() {
   } else {
     vitesseY = vitesseY;
   }
-  tableau[balleX][balleY] = 3;
+  
 }
 
 void montrerSerial() {
@@ -165,7 +194,7 @@ void montrerSerial() {
   }
 }
 
-void deplacerLedX(String sens) {
+void deplacerJoueur(String sens) {
   if (sens == "gauche") {
     tableau[joueurY][joueurX] = 0;
     joueurX++;
