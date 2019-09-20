@@ -159,6 +159,7 @@ void deplacerBalle() {
   //Efface la lumière du dernier positionnement de la balle
   tableau[balleX][balleY] = 0 ;
 
+  //On déplace la balle
   balleX = balleX + vitesseX ;
   balleY = balleY + vitesseY ;
 
@@ -176,6 +177,7 @@ void deplacerBalle() {
     vitesseY = vitesseY;
   }
 
+//Si la balle rencontre une brique
 int b,c = 0 ;
 for (b = 0 ; b < 3 ; b ++){
   if (balleX == briques[b][0] && balleY == briques[b][1]){
@@ -187,14 +189,45 @@ for (b = 0 ; b < 3 ; b ++){
   } 
 }
 
+//Si la balle rencontre le joueur 
+if (balleX == joueurX && balleY == joueurY) {
+    vitesseY = -vitesseY;          
+    vitesseX = -vitesseX ;
+}
 
+if (balleX < 0) {
+ // restart()
+}
+
+void restart() {
+  tableau[5][5] = {
+    {1, 0, 0, 0, 1},
+    {1, 2, 2, 2, 1},
+    {1, 0, 0, 0, 1},
+    {1, 0, 3, 0, 1},
+    {1, 0, 0, 0, 1}
+  };
+
+  //tableau final
+  tableau_1d[25];
+
+  briques[3][2] = {
+    {1,1}, {1,2}, {1,3}
+  };
+
+
+  //Nous initialisons le positionnemnet du joueur ici
+  joueurX = 1;
+  joueurY = 1;
+
+  //Nous initialisons la position de la balle ici
+  balleX = 3;
+  balleY = 2;
+
+}
   // Place la lumière sur la nouvelle position de la balle 
   tableau[balleX][balleY] = 3;
   
-}
-
-void updatePosition(){
-
 }
 
 void montrerSerial() {
