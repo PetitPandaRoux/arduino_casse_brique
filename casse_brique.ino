@@ -11,6 +11,8 @@
 
 #define BRIGHTNESS 255
 
+#define NB_BRIQUE 3
+
 
 
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_RGBW + NEO_KHZ800);
@@ -27,7 +29,7 @@ Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_RGBW + NEO_KHZ800);
 uint8_t tableau[5][5] = {
   {0, 0, 2, 0, 0},
   {0, 2, 0, 2, 0},
-  {0, 0, 2, 0, 0},
+  {0, 0, 0, 0, 0},
   {0, 0, 0, 3, 0},
   {0, 0, 4, 0, 0}
 };
@@ -35,15 +37,15 @@ uint8_t tableau[5][5] = {
 //tableau final
 uint8_t tableau_1d[25];
 
-uint8_t briques[4][2] = {
-  {0,2}, {1,1}, {1,3},{2,2}
+uint8_t briques[NB_BRIQUE][3] = {
+  {0, 2, 1}, {1, 1, 1}, {1, 3, 1}
 };
 
 int led = 13;
 
 //Nous initialisons le positionnemnet du joueur ici
-int joueurX = 2;
-int joueurY = 4;
+int joueurX = 4;
+int joueurY = 2;
 
 //Nous initialisons la position de la balle ici
 uint8_t balleX = 3;
@@ -52,6 +54,8 @@ uint8_t balleY = 3;
 //Les vitesses initiales de la balle
 int vitesseX = -1;
 int vitesseY = 1;
+int vitesseXprec ;
+int vitesseYprec;
 
 //initialisation des boutons de déplacement
 const int buttonPlus = 2;
@@ -60,14 +64,14 @@ const int buttonMoins = 3;
 int etatButtonPlus = 0;
 int etatButtonPlusPrec = 0;
 int etatButtonMoins = 0;
-int etatButtonMoinsPrec = 0;  
+int etatButtonMoinsPrec = 0;
 
 //Obtenir la longueur d'un tableau (nombre d'éléments)
 size_t array_length = sizeof(tableau) / sizeof(tableau[0]);
 
 
 void setup() {
-  // These lines are specifically to support the Adafruit Trinket 5V 16 MHz.
+  // These lines are spvitesseXecifically to support the Adafruit Trinket 5V 16 MHz.
   // Any other board, you can remove this part (but no harm leaving it):
 #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
   clock_prescale_set(clock_div_1);
@@ -85,62 +89,68 @@ void setup() {
 
 void loop() {
 
-//Lecture des deux boutons de déplacement
+  // Test de digitalWrite pour une led
+
+  digitalWrite(led, HIGH);
+
+  //Lecture des deux boutons de déplacement
   etatButtonPlus = digitalRead(buttonPlus);
   etatButtonMoins = digitalRead(buttonMoins);
 
-// Déplacement du joueur
+  // Déplacement du joueur
   if (etatButtonPlus == HIGH && etatButtonPlusPrec == LOW) {
     deplacerJoueur("gauche");
-    delay(5);
+    delay(1);
   } else {
     etatButtonPlusPrec = LOW;
   }
 
   if (etatButtonMoins == HIGH && etatButtonMoinsPrec == LOW) {
     deplacerJoueur("droite");
-    delay(5);
+    delay(1);
   } else {
     etatButtonMoinsPrec = LOW;
   }
 
 
 
- 
-  
+
+
   size_t array_length = sizeof(tableau_1d) / sizeof(tableau_1d[0]);
-  
+
   deplacerBalle();
 
-  // Tranformation du tableau 
+  // Tranformation du tableau
   int i, j, k = 0;
 
-  for(j = 0 ; j < 5 ; j++){
+  for (j = 0 ; j < 5 ; j++) {
     if ( j % 2 != 0) {
       for ( i = 4 ; i >= 0 ; i--) {
         tableau_1d[k] = tableau[i][j];
         k++ ;
       }
     } else {
-      for( i = 0 ; i < 5 ; i++){
+      for ( i = 0 ; i < 5 ; i++) {
         tableau_1d[k] = tableau[i][j];
-        k++ ;  
+        k++ ;
       }
     }
   }
-  
+
   setMatriceCouleur(tableau_1d, array_length);
-  
+
+  isWon();
+
   montrerSerial(); // Permet de vérifier les positions
-  
-  delay(500);
+
+  delay(250);
 
 }
 
 
 void whiteOverRainbow(int whiteSpeed, int whiteLength) {
 
-  if(whiteLength >= pixels.numPixels()) whiteLength = pixels.numPixels() - 1;
+  if (whiteLength >= pixels.numPixels()) whiteLength = pixels.numPixels() - 1;
 
   int      head          = whiteLength - 1;
   int      tail          = 0;
@@ -149,10 +159,10 @@ void whiteOverRainbow(int whiteSpeed, int whiteLength) {
   uint32_t lastTime      = millis();
   uint32_t firstPixelHue = 0;
 
-  for(;;) { // Repeat forever (or until a 'break' or 'return')
-    for(int i=0; i<pixels.numPixels(); i++) {  // For each pixel in pixels...
-      if(((i >= tail) && (i <= head)) ||      //  If between head & tail...
-         ((tail > head) && ((i >= tail) || (i <= head)))) {
+  for (;;) { // Repeat forever (or until a 'break' or 'return')
+    for (int i = 0; i < pixels.numPixels(); i++) { // For each pixel in pixels...
+      if (((i >= tail) && (i <= head)) ||     //  If between head & tail...
+          ((tail > head) && ((i >= tail) || (i <= head)))) {
         pixels.setPixelColor(i, pixels.Color(0, 0, 0, 255)); // Set white
       } else {                                             // else set rainbow
         int pixelHue = firstPixelHue + (i * 65536L / pixels.numPixels());
@@ -166,12 +176,12 @@ void whiteOverRainbow(int whiteSpeed, int whiteLength) {
 
     firstPixelHue += 40; // Advance just a little along the color wheel
 
-    if((millis() - lastTime) > whiteSpeed) { // Time to update head/tail?
-      if(++head >= pixels.numPixels()) {      // Advance head, wrap around
+    if ((millis() - lastTime) > whiteSpeed) { // Time to update head/tail?
+      if (++head >= pixels.numPixels()) {     // Advance head, wrap around
         head = 0;
-        if(++loopNum >= loops) return;
+        if (++loopNum >= loops) return;
       }
-      if(++tail >= pixels.numPixels()) {      // Advance tail, wrap around
+      if (++tail >= pixels.numPixels()) {     // Advance tail, wrap around
         tail = 0;
       }
       lastTime = millis();                   // Save time of last movement
@@ -180,14 +190,14 @@ void whiteOverRainbow(int whiteSpeed, int whiteLength) {
 }
 
 void colorWipe(uint32_t color, int wait) {
-  for(int i=0; i<pixels.numPixels(); i++) { // For each pixel in pixels...
+  for (int i = 0; i < pixels.numPixels(); i++) { // For each pixel in pixels...
     pixels.setPixelColor(i, color);         //  Set pixel's color (in RAM)
     pixels.show();                          //  Update pixels to match
     delay(wait);                           //  Pause for a moment
   }
 }
 
-void feuDartifice(){
+void feuDartifice() {
   colorWipe(pixels.Color(255,   0,   0)     , 50); // Red
   colorWipe(pixels.Color(  0, 255,   0)     , 50); // Green
   colorWipe(pixels.Color(  0,   0, 255)     , 50); // Blue
@@ -195,16 +205,16 @@ void feuDartifice(){
 
   whiteOverRainbow(75, 5);
 }
-  
+
 
 void setMatriceCouleur(uint8_t matrice[], int longueurTableau) {
 
   for (byte i = 0 ; i < longueurTableau ; i++) {
-    if (matrice[i] == 1 ) { 
+    if (matrice[i] == 1 ) {
       pixels.setPixelColor(i, pixels.Color(0, 255, 0)); // Les murs rouges
-    } else if (matrice[i] == 2) { 
+    } else if (matrice[i] == 2) {
       pixels.setPixelColor(i, pixels.Color(255, 255, 0)); // La briques
-    } else if (matrice[i] == 3) { 
+    } else if (matrice[i] == 3) {
       pixels.setPixelColor(i, pixels.Color(255, 0, 255)); //La balle
     } else if (matrice[i] == 4) {
       pixels.setPixelColor(i, pixels.Color(0, 0, 255)); // Le joueur
@@ -219,50 +229,51 @@ void deplacerBalle() {
 
   //Efface la lumière du dernier positionnement de la balle
   tableau[balleX][balleY] = 0 ;
+  tableau[joueurX][joueurY] = 4;
+
 
   //On déplace la balle
   balleX = balleX + vitesseX ;
   balleY = balleY + vitesseY ;
 
-//Si la balle sort horizontalement
+  vitesseXprec = vitesseX ;
+  vitesseYprec = vitesseY ;
+
+  //Si la balle sort horizontalement
   if (balleX >= 4 || balleX <= 0) {
-    vitesseX = -vitesseX ;
-  } else {
-    vitesseX = vitesseX;
+    vitesseX = -vitesseXprec ;
   }
 
-//Si la balle sort verticalement
+  //Si la balle sort verticalementSerial
   if (balleY >= 4 || balleY <= 0) {
-    vitesseY = -vitesseY;
-  } else {
-    vitesseY = vitesseY;
+    vitesseY = -vitesseYprec;
   }
 
-//Si la balle rencontre une brique
-int b,c = 0 ;
-for (b = 0 ; b < 4 ; b ++){
-  if (balleX == briques[b][0] && balleY == briques[b][1]){
+  //Si la balle rencontre une brique
+  int b, c = 0 ;
+  for (b = 0 ; b < 4 ; b ++) {
+    if (balleX == briques[b][0] && balleY == briques[b][1] && briques[b][2] == 1) {
       tableau[briques[b][0]][briques[b][1]] = 0 ;
-      briques[b][0] = -1;
-      briques[b][1] = -1;
-      vitesseY = -vitesseY;          
-      vitesseX = -vitesseX ;
-  } 
-}
+      briques[b][2] = 0;
+      vitesseY = -vitesseYprec;
+      vitesseX = -vitesseXprec ;
+    }
+  }
 
-//Si la balle rencontre le joueur 
-if (balleX == joueurX && balleY == joueurY) {
-    vitesseY = -vitesseY;          
-    vitesseX = -vitesseX ;
-}
+  //Si la balle rencontre le joueur
+  if (balleX == joueurX && balleY == joueurY) {
+    vitesseY = -vitesseYprec;
+    vitesseX = -vitesseXprec ;
+  }
 
-if (balleX < 0) {
- // restart()
-}
+  if (balleX < 0) {
+    // restart()
+  }
 
-  // Place la lumière sur la nouvelle position de la balle 
+
+  // Place la lumière sur la nouvelle position de la balle
   tableau[balleX][balleY] = 3;
-  
+
 }
 
 
@@ -291,7 +302,7 @@ if (balleX < 0) {
   balleX = 3;
   balleY = 2;
 
-}*/
+  }*/
 
 void montrerSerial() {
   Serial.println("");
@@ -299,10 +310,10 @@ void montrerSerial() {
   Serial.println(balleX);
   Serial.print("position balle Y: ");
   Serial.println(balleY);
-  Serial.print("vitesseX: ");
-  Serial.println(vitesseX);
-  Serial.print("vitesseY: ");
-  Serial.println(vitesseY);
+  Serial.print("JoueurX: ");
+  Serial.println(joueurX);
+  Serial.print("joueurY: ");
+  Serial.println(joueurY);
   Serial.println("");
 
   for (int i = 0; i < 5; i++) {
@@ -313,16 +324,36 @@ void montrerSerial() {
   }
 }
 
+void isWon(){
+  int i;
+  int compteur = 0;
+  for(i = 0 ; i < NB_BRIQUE ; i ++){
+    if (briques[i][2] == 0){
+      compteur++;
+    }
+  }
+  if (compteur == NB_BRIQUE){
+    Serial.println("F1");
+    feuDartifice();
+
+  }
+  
+}
+
 void deplacerJoueur(String sens) {
   if (sens == "gauche") {
-    tableau[joueurY][joueurX] = 0;
-    joueurX++;
-    tableau[joueurY][joueurX] = 4;
+    tableau[joueurX][joueurY] = 0;
+    if (joueurY < 4) {
+      joueurY++;
+    }
+    tableau[joueurX][joueurY] = 4;
     etatButtonPlusPrec = HIGH;
   } else if (sens == "droite") {
-    tableau[joueurY][joueurX] = 0;
-    joueurX--;
-    tableau[joueurY][joueurX] = 4;
+    tableau[joueurX][joueurY] = 0;
+   if (joueurY > 0) {
+      joueurY--;
+    }
+    tableau[joueurX][joueurY] = 4;
     etatButtonMoinsPrec = HIGH;
   }
 }
