@@ -41,7 +41,13 @@ uint8_t briques[NB_BRIQUE][3] = {
   {0, 2, 1}, {1, 1, 1}, {1, 3, 1}
 };
 
-int led = 13;
+// Led qui peut servir à signaler le fonctionnement du module
+int ledFonctionnement = 13;
+
+//Variables globales 
+bool jeuEstPerdu = false;
+bool enJeu = false;  
+bool ledsAllumes = false;
 
 //Nous initialisons le positionnemnet du joueur ici
 int joueurX = 4;
@@ -52,19 +58,22 @@ uint8_t balleX = 3;
 uint8_t balleY = 3;
 
 //Les vitesses initiales de la balle
-int vitesseX = -1;
-int vitesseY = 1;
+short vitesseX = -1;
+short vitesseY = 1;
 int vitesseXprec ;
 int vitesseYprec;
 
 //initialisation des boutons de déplacement
 const int buttonPlus = 2;
 const int buttonMoins = 3;
+const uint8_t bouttonStart = 4;
 
-int etatButtonPlus = 0;
-int etatButtonPlusPrec = 0;
-int etatButtonMoins = 0;
-int etatButtonMoinsPrec = 0;
+uint8_t etatBouttonStart = 0;
+uint8_t etatButtonPlus = 0;
+uint8_t etatButtonPlusPrec = 0;
+uint8_t etatButtonMoins = 0;
+uint8_t etatButtonMoinsPrec = 0;
+
 
 //Obtenir la longueur d'un tableau (nombre d'éléments)
 size_t array_length = sizeof(tableau) / sizeof(tableau[0]);
@@ -80,73 +89,85 @@ void setup() {
   Serial.begin(9600);
   pinMode(buttonPlus, INPUT);
   pinMode(buttonMoins, INPUT);
-  pinMode(led, OUTPUT);
+  pinMode(ledFonctionnement, OUTPUT);
   pixels.begin();
   pixels.show(); // Initialize all pixels to 'off'
   pixels.setBrightness(BRIGHTNESS); // Set BRIGHTNESS to about 1/5 (max = 255)
   feuDartifice();
+  digitalWrite(ledFonctionnement, HIGH);
+  delay(500);
+  digitalWrite(ledFonctionnement, LOW);
 }
 
 void loop() {
 
-  // Test de digitalWrite pour une led
+  //La boucle en attendant que le joueur commence
+  while(!enJeu) {
+    etatBouttonStart = digitalRead(bouttonStart);
+    
+    if (etatBouttonStart == HIGH) {
+      ledsAllumes = false;
+      enJeu = true ;
+    }
 
-  digitalWrite(led, HIGH);
-
-  //Lecture des deux boutons de déplacement
-  etatButtonPlus = digitalRead(buttonPlus);
-  etatButtonMoins = digitalRead(buttonMoins);
-
-  // Déplacement du joueur
-  if (etatButtonPlus == HIGH && etatButtonPlusPrec == LOW) {
-    deplacerJoueur("gauche");
-    delay(1);
-  } else {
-    etatButtonPlusPrec = LOW;
+    if (!ledsAllumes) {
+      colorWipe(pixels.Color(255,   0,   0), 10); // On allume les couleurs en rouge en attendant le joueur
+        ledsAllumes = true ;
+    } 
+    delay(100);
   }
 
-  if (etatButtonMoins == HIGH && etatButtonMoinsPrec == LOW) {
-    deplacerJoueur("droite");
-    delay(1);
-  } else {
-    etatButtonMoinsPrec = LOW;
-  }
+  while(enJeu) {
+    //Lecture des deux boutons de déplacement
+    etatButtonPlus = digitalRead(buttonPlus);
+    etatButtonMoins = digitalRead(buttonMoins);
 
-
-
-
-
-  size_t array_length = sizeof(tableau_1d) / sizeof(tableau_1d[0]);
-
-  deplacerBalle();
-
-  // Tranformation du tableau
-  int i, j, k = 0;
-
-  for (j = 0 ; j < 5 ; j++) {
-    if ( j % 2 != 0) {
-      for ( i = 4 ; i >= 0 ; i--) {
-        tableau_1d[k] = tableau[i][j];
-        k++ ;
-      }
+    // Déplacement du joueur
+    if (etatButtonPlus == HIGH && etatButtonPlusPrec == LOW) {
+      deplacerJoueur("gauche");
+      delay(1);
     } else {
-      for ( i = 0 ; i < 5 ; i++) {
-        tableau_1d[k] = tableau[i][j];
-        k++ ;
+      etatButtonPlusPrec = LOW;
+    }
+
+    if (etatButtonMoins == HIGH && etatButtonMoinsPrec == LOW) {
+      deplacerJoueur("droite");
+      delay(1);
+    } else {
+      etatButtonMoinsPrec = LOW;
+    }
+
+    // On update tous les elements
+    deplacerBalle();
+
+
+    // Tranformation du tableau de 2 dimension vers une dimension
+    int i, j, k = 0;
+
+    for (j = 0 ; j < 5 ; j++) {
+      if ( j % 2 != 0) {
+        for ( i = 4 ; i >= 0 ; i--) {
+          tableau_1d[k] = tableau[i][j];
+          k++ ;
+        }
+      } else {
+        for ( i = 0 ; i < 5 ; i++) {
+          tableau_1d[k] = tableau[i][j];
+          k++ ;
+        }
       }
     }
+
+    //On allume le beandeau de led
+    setMatriceCouleur(tableau_1d, array_length);
+    //On regarde si on a gagne
+    isWon();
+    //On affiche sur le port serie les différents éléments du tableau
+    montrerSerial(); // Permet de vérifier les positions sur le moniteur serie
+    delay(250);
   }
 
-  setMatriceCouleur(tableau_1d, array_length);
-
-  isWon();
-
-  montrerSerial(); // Permet de vérifier les positions
-
-  delay(250);
-
 }
-
 
 void whiteOverRainbow(int whiteSpeed, int whiteLength) {
 
@@ -267,32 +288,33 @@ void deplacerBalle() {
   }
 
   if (balleX < 0) {
-    // restart()
+    // Rien
   }
-
 
   // Place la lumière sur la nouvelle position de la balle
   tableau[balleX][balleY] = 3;
 
 }
 
-
-/*void restart() {
-  tableau= {
-    {1, 0, 0, 0, 1},
-    {1, 2, 2, 2, 1},
-    {1, 0, 0, 0, 1},
-    {1, 0, 3, 0, 1},
-    {1, 0, 0, 0, 1}
-  }
-
-  //tableau final
-  tableau_1d[25];
-
-  briques= {
-    {1,1}, {1,2}, {1,3}
+void initialisationJeu() {
+ 
+ uint8_t tableau_sauvegarde[5][5] = {
+    {0, 0, 2, 0, 0},
+    {0, 2, 0, 2, 0},
+    {0, 0, 0, 0, 0},
+    {0, 0, 0, 3, 0},
+    {0, 0, 4, 0, 0}
   };
 
+  //On remplit le tableau avec les nouvelles valeurs
+  short l, m  = 0;
+  for (l = 0 ; l < 5 ; l++) {
+      for ( m = 0 ; m < 5 ; m++) {
+        tableau[l][m] = tableau_sauvegarde[l][m];
+        m++ ;
+      }
+      l++;
+    }
 
   //Nous initialisons le positionnemnet du joueur ici
   joueurX = 1;
@@ -302,7 +324,7 @@ void deplacerBalle() {
   balleX = 3;
   balleY = 2;
 
-  }*/
+}
 
 void montrerSerial() {
   Serial.println("");
@@ -335,6 +357,9 @@ void isWon(){
   if (compteur == NB_BRIQUE){
     Serial.println("F1");
     feuDartifice();
+    enJeu = false;
+    initialisationJeu();
+
 
   }
   
